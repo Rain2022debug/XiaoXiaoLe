@@ -9,44 +9,27 @@ from typing import List
 
 # 拼图精灵类
 class gameSprite(pygame.sprite.Sprite):
-    def __init__(self,img_path,size,position,downlen):
+    def __init__(self,img_path,size,position):
         pygame.sprite.Sprite.__init__(self)
         self.img=pygame.image.load(img_path)
         self.image = pygame.transform.smoothscale(self.img, size)
         self.rect = self.image.get_rect()
         self.rect.left, self.rect.top = position
-        self.rect.top+=downlen
-        self.downlen = downlen
-        self.target_x = position[0]
-        self.target_y = position[1] + downlen
         self.type=img_path.split('/')[-1].split('.')[0]
-        self.fixed=True
-        self.speed_x=10
-        self.speed_y=10
-        self.direction='down'
-    '''获取坐标'''
 
+    '''获取坐标'''
     def getPosition(self):
         return self.rect.left, self.rect.top
 
     '''设置坐标'''
-
     def setPosition(self, position):
         self.rect.left, self.rect.top = position
 
-
-
-            # 窗口无响应是因为没有任何注册在窗口上的事件
-            # 为当前窗口增加事件
-            # 利用pygame注册事件，其返回值是一个列表，
-            # 存放当前注册时获取的所有事件
-
-
+#游戏类
 class xiaoxiaole_game:
-    def __init__(self,screen,sounds,fonts,flowers):
+    def __init__(self,screen,fonts,flowers):
         self.info='消消乐小游戏'
         self.screen =screen
-        self.sounds=sounds
         self.fonts=fonts
         self.flowers_imgs=flowers
         self.same_flowers=[]
@@ -54,25 +37,21 @@ class xiaoxiaole_game:
 
 
     def start(self):
-        #遍历整个游戏界面更新位置
-        overall_moving=True
         #游戏变量
         flower_selected_xy=None
         #游戏主循环
         while True:
-            #手动退出游戏
             for event in pygame.event.get():
+                # 手动退出游戏
                 if event.type == pygame.QUIT or (event.type == pygame.KEYUP and event.key == pygame.K_ESCAPE):
                     pygame.quit()
                     sys.exit()
                 elif event.type==pygame.MOUSEBUTTONUP:
                     position=pygame.mouse.get_pos()
                     flower_selected_xy=self.check_selected(position)
-
-            # if self.check_column_sprites()!=-1:
-            #     for x in range(self.check_column_sprites()+1,NUMBGRID):
-            #         for y in range(NUMBGRID):
-            #             self.get_flower_by_pos(x, y)
+                #按R键重置游戏
+                elif event.type == pygame.KEYUP and event.key == pygame.K_r:
+                    self.reset()
 
             self.screen.fill((135, 206, 235))
             self.draw_grids()
@@ -85,9 +64,11 @@ class xiaoxiaole_game:
                 self.same_flowers=[flower_selected_xy]
                 #找出所有可消除方块并移除
                 self.is_match(flower_selected_xy[0],flower_selected_xy[1])
-                self.score+=len(self.same_flowers)
-                if self.same_flowers:
+                #必须要连着有2个及以上
+                if len(self.same_flowers)>1:
+                    self.score+=len(self.same_flowers)
                     self.remove_matched()
+                #处理完后取消选中的方块
                 flower_selected_xy=None
             self.draw_score()
             pygame.display.update()
@@ -101,8 +82,7 @@ class xiaoxiaole_game:
             self.all_flowers.append([])
             for y in range(NUMBGRID):
                 fl = gameSprite(img_path=random.choice(self.flowers_imgs), size=(GRIDSIZE, GRIDSIZE),
-                                position=[XMARGIN + x * GRIDSIZE, YMARGIN + y * GRIDSIZE - NUMBGRID * GRIDSIZE],
-                                downlen=NUMBGRID * GRIDSIZE)
+                                position=[XMARGIN + x * GRIDSIZE, YMARGIN + y * GRIDSIZE],)
                 self.all_flowers[x].append(fl)
                 self.flowers_group.add(fl)
             # 得分
@@ -115,10 +95,8 @@ class xiaoxiaole_game:
         for x in range(NUMBGRID):
             count=0
             for y in range(NUMBGRID):
-                if not self.get_flower_by_pos(x,y).fixed:
-                    count+=1
-            if count==NUMBGRID:
-                return x
+                if not self.get_flower_by_pos(x,y): count+=1
+            if count==NUMBGRID: return x
         return -1
 
 
@@ -159,6 +137,7 @@ class xiaoxiaole_game:
     def remove_matched(self):
         col_number=[i[0] for i in self.same_flowers]
         col_number=list(set(col_number))
+        #记录每一列有哪几个可消除
         dic={}
         for i in col_number:
             tl=[]
@@ -168,20 +147,28 @@ class xiaoxiaole_game:
                 if pos[0]==i:
                     tl.append(pos[1])
             dic[i]=tl
+        #消除完后下移方块
         for col in dic.keys():
             for j in range(max(dic[col])-1,-1,-1):
-                if j in dic[col]:
-                    continue
+                if j in dic[col]: continue
                 else:
                     count=0
                     for k in dic[col]:
-                       if j-k <0:
-                           count+=1
+                       if j-k <0:   count+=1
                     if self.get_flower_by_pos(col, j):
                         f= self.get_flower_by_pos(col, j)
                         self.all_flowers[col][j] = None
                         f.rect.top+=GRIDSIZE*count
                         self.all_flowers[col][j+count]=f
+        #左移补上空缺的列
+        if self.check_column_sprites() != -1:
+            for x in range(self.check_column_sprites() + 1, NUMBGRID):
+                for y in range(NUMBGRID):
+                    if self.get_flower_by_pos(x, y):
+                        f = self.get_flower_by_pos(x, y)
+                        self.all_flowers[x][y] = None
+                        f.rect.left -= GRIDSIZE
+                        self.all_flowers[x - 1][y] = f
 
 
     #绘制界面网格

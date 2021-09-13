@@ -15,11 +15,11 @@ def main():
     pygame.mixer.music.play(-1)
 
     #加载音效
-    sounds={}
-    sounds['mismatch']=pygame.mixer.Sound(os.path.join(ROOTDIR,'audios/mismatch.wav'))
-    sounds['match']=[]
-    for temp1 in range(6):
-        sounds['match'].append(pygame.mixer.Sound(os.path.join(ROOTDIR,'audios/match%s.wav'%temp1)))
+    # sounds={}
+    # sounds['mismatch']=pygame.mixer.Sound(os.path.join(ROOTDIR,'audios/mismatch.wav'))
+    # sounds['match']=[]
+    # for temp1 in range(6):
+    #     sounds['match'].append(pygame.mixer.Sound(os.path.join(ROOTDIR,'audios/match%s.wav'%temp1)))
     #加载字体
     font=pygame.font.Font(os.path.join(ROOTDIR,'font/font.TTF'),25)
     #图片加载
@@ -27,7 +27,7 @@ def main():
     for i in range(1, 7):
         flower_imgs.append(os.path.join(ROOTDIR, 'img/flower%s.png' % i))
     #主循环 运行游戏
-    game=xiaoxiaole_game(screen,sounds,font,flower_imgs)
+    game=xiaoxiaole_game(screen,font,flower_imgs)
     while True:
         score=game.start()
         flag=False
