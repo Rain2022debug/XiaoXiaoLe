@@ -53,7 +53,7 @@ class xiaoxiaole_game:
                 elif event.type == pygame.KEYUP and event.key == pygame.K_r:
                     self.reset()
 
-            self.screen.fill((135, 206, 235))
+            self.screen.fill('#7D1935')
             self.draw_grids()
             self.flowers_group.draw(self.screen)
             #有一个方块被选中时
@@ -66,7 +66,7 @@ class xiaoxiaole_game:
                 self.is_match(flower_selected_xy[0],flower_selected_xy[1])
                 #必须要连着有2个及以上
                 if len(self.same_flowers)>1:
-                    self.score+=len(self.same_flowers)
+                    self.add_score(len(self.same_flowers))
                     self.remove_matched()
                 #处理完后取消选中的方块
                 flower_selected_xy=None
@@ -82,29 +82,35 @@ class xiaoxiaole_game:
             self.all_flowers.append([])
             for y in range(NUMBGRID):
                 fl = gameSprite(img_path=random.choice(self.flowers_imgs), size=(GRIDSIZE, GRIDSIZE),
-                                position=[XMARGIN + x * GRIDSIZE, YMARGIN + y * GRIDSIZE],)
+                                position=[XMARGIN + x * GRIDSIZE, YMARGIN + y * GRIDSIZE])
                 self.all_flowers[x].append(fl)
                 self.flowers_group.add(fl)
             # 得分
             self.score = 0
             # 奖励
             self.reward = 10
+    #添加评分规则
+    #1个基础为1分，总数每超过2的次方就乘以该次方
+    def add_score(self,n):
+        self.score+=n*(n//2)
 
     #判断一列是否清空，如果是则需要拼接
+    #可能同时空出多列,按从小到大顺序储存
     def check_column_sprites(self):
+        res=[]
         for x in range(NUMBGRID):
             count=0
             for y in range(NUMBGRID):
-                if not self.get_flower_by_pos(x,y): count+=1
-            if count==NUMBGRID: return x
-        return -1
+                if not self.all_flowers[x][y]: count+=1
+            if count==NUMBGRID: res.append(x)
+        return res
 
 
     def get_flower_by_pos(self,x,y):
         return self.all_flowers[x][y]
 
     def draw_score(self):
-        score_render=self.fonts.render('SCORE: '+str(self.score),1,(85,65,0))
+        score_render=self.fonts.render('SCORE: '+str(self.score),1,'#FFADAD')
         rect=score_render.get_rect()
         rect.left,rect.top=(10,6)
         self.screen.blit(score_render,rect)
@@ -161,14 +167,20 @@ class xiaoxiaole_game:
                         f.rect.top+=GRIDSIZE*count
                         self.all_flowers[col][j+count]=f
         #左移补上空缺的列
-        if self.check_column_sprites() != -1:
-            for x in range(self.check_column_sprites() + 1, NUMBGRID):
+        empty_col=self.check_column_sprites()
+        if len(empty_col) != 0:
+            empty_col_count=1
+            for x in range(min(empty_col)+1, NUMBGRID):
+                #后排移动的列数只会比前面更多或者一样
+                if x in empty_col:
+                    empty_col_count+=1
+                    continue
                 for y in range(NUMBGRID):
                     if self.get_flower_by_pos(x, y):
                         f = self.get_flower_by_pos(x, y)
                         self.all_flowers[x][y] = None
-                        f.rect.left -= GRIDSIZE
-                        self.all_flowers[x - 1][y] = f
+                        f.rect.left -= GRIDSIZE*empty_col_count
+                        self.all_flowers[x - empty_col_count][y] = f
 
 
     #绘制界面网格
@@ -176,7 +188,7 @@ class xiaoxiaole_game:
         for x in range(NUMBGRID):
             for y in range(NUMBGRID):
                 rect=pygame.Rect(XMARGIN+x*GRIDSIZE,YMARGIN+y*GRIDSIZE,GRIDSIZE,GRIDSIZE)
-                pygame.draw.rect(self.screen,(0, 0, 255),rect,1)
+                pygame.draw.rect(self.screen,'#046582',rect,1)
 
     def draw_add_score(self, add_score):
         score_render = self.fonts.render('+' + str(add_score), 1, (255, 100, 100))
